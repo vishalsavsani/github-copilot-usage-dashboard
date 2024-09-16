@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from './../../environments/environment';
+import { map } from 'rxjs/operators';
 
 @Injectable({
   providedIn: 'root'
@@ -15,20 +16,20 @@ export class OrganizationLevelService {
 
   getCopilotUsageData(): Observable<any>  {
     // sample dta loaded from local file
-    return this.http.get(this.copilotUsageDataUrl);
+    //return this.http.get(this.copilotUsageDataUrl);
     // uncomment below line to invoke API
     // modify the environment file to add your token
     // modify the organization name to your organization
-    // return this.invokeCopilotUsageApi();
+     return this.invokeCopilotUsageApi();
   }
 
   getCopilotSeatsData(): Observable<any>  {
     // sample dta loaded from local file
-    return this.http.get(this.copilotSeatsDataUrl);
+    //return this.http.get(this.copilotSeatsDataUrl);
     // uncomment below line to invoke API
     // modify the environment file to add your token
     // modify the organization name to your organization
-    // return this.invokeCopilotSeatApi();
+     return this.invokeCopilotSeatApi();
   }
 
   invokeCopilotUsageApi(): Observable<any> {
@@ -54,22 +55,25 @@ export class OrganizationLevelService {
     var totalPages=1;
 
     // get the paginated Copilot Seat allocation data
-    do{
-      var response = this.getPaginatedSeatsData(apiUrl, pageNo);
-      response.subscribe((data: any) => {
-        if(firstPage){
-          data=data;
-          firstPage=false;
-          totalPages=data.total_pages;
-        }
-        else{
-          data.seats=data.seats.concat(data.seats);
-        }
-      });
-      pageNo=pageNo+1;
-    }while(pageNo < totalPages);
+    return this.getPaginatedSeatsData(apiUrl, pageNo).pipe(
+        map((response: any) => {
+          if (firstPage) {
+            data = response;
+            firstPage = false;
+            totalPages = response.total_pages;
+          } else {
+            data.seats = data.seats.concat(response.seats);
+          }
 
-    return data;
+          // If there are more pages, recursively call this method
+          if (pageNo < totalPages) {
+            return this.invokeCopilotSeatApi();
+          } else {
+            // If there are no more pages, return the data
+            return data;
+          }
+        })
+    );
   }
 
   getPaginatedSeatsData(apiUrl:any, pageNo:any): Observable<any> {
